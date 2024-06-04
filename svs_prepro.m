@@ -2,13 +2,13 @@ clear all;
 
 % PATH VARS
 PATH_EEGLAB = '/home/plkn/eeglab2023.1/';
-PATH_RAW = '/mnt/data_fast/sysvself/eeg/';
+PATH_RAW = '/mnt/data_fast/sysvself/0_eeg/';
 PATH_LOGFILES = '/mnt/data_fast/sysvself/logfiles/';
-PATH_ICSET = '';
-PATH_AUTOCLEANED = '';
+PATH_ICSET = '/mnt/data_fast/sysvself/1_icset/';
+PATH_AUTOCLEANED = '/mnt/data_fast/sysvself/2_autocleaned/';
 
 
-subject_list = {'VP01'};
+subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06'};
 
 % Init eeglab
 addpath(PATH_EEGLAB);
@@ -23,158 +23,84 @@ for s = 1 : length(subject_list)
     % Load EEG
     EEG = pop_loadbv(PATH_RAW, [subject_list{s}, '.vhdr'], [], []);
 
-    aa=bb
-
-
     % Get id
-    subject_id = str2num(subject_list{s}(1 : end - 2));
+    subject_id = str2num(subject_list{s}(3 : 4));
 
-    % Load control file
-    CNT = readtable([PATH_CONTROL_FILES, 'control_file_', num2str(subject_id), '_', str_cond, '.csv']);
-
-    % Copy feedback info to following sequence trials
-    fb = NaN;
-    fb_scaled = NaN;
-    for e = 1 : size(CNT, 1)
-        if CNT(e, :).event_code == 4
-            fb = CNT(e, :).sequence_feedback;
-            fb_scaled = CNT(e, :).sequence_feedback_scaled;
-        end
-        if CNT(e, :).event_code == 5
-            CNT(e, :).sequence_feedback = fb;
-            CNT(e, :).sequence_feedback_scaled = fb_scaled;
-
-            % Set feedback NaN if first sequence of block
-            if CNT(e, :).sequence_nr == 1
-                CNT(e, :).sequence_feedback = NaN;
-                CNT(e, :).sequence_feedback_scaled = NaN;
-            end
-        end
-    end
-
-    % Drop non-trial lines
-    CNT = CNT(CNT.event_code == 5, :);
-
-    % Check trialcount
-    if size(CNT, 1) ~= 768
-        fprintf('\n\n\nSOMETHING IS WEIIIRDDD with control file things!!!!!!\n\n\n');
-        pause;
-    end
+    % Read log
+    LOG = readtable([PATH_LOGFILES, 'VP', subject_list{s}(3 : 4), '_logEdgy.txt'], "NumHeaderLines", 3);
 
     % Iterate events
     trialinfo = [];
-    block_nr = -1;
     trial_nr_total = 0;
-    enums = zeros(256, 1);
     for e = 1 : length(EEG.event)
 
-        % If an S event
-        if strcmpi(EEG.event(e).type(1), 'S')
+        % If baseline 1
+        if strcmpi(EEG.event(e).type, 'S 10')
+            EEG.event(e).type = 'X';
+            trial_nr_total = trial_nr_total + 1;
+            trialinfo(trial_nr_total, :) = [e,...
+                                            subject_id,...
+                                            trial_nr_total,...
+                                            1];
+        end
 
-            % Get event number
-            enum = str2num(EEG.event(e).type(2 : end));
+        % If baseline 2
+        if strcmpi(EEG.event(e).type, 'S 20')
+            EEG.event(e).type = 'X';
+            trial_nr_total = trial_nr_total + 1;
+            trialinfo(trial_nr_total, :) = [e,...
+                                            subject_id,...
+                                            trial_nr_total,...
+                                            1];
+        end
 
-            enums(enum) = enums(enum) + 1;
+        % If sys 1
+        if strcmpi(EEG.event(e).type, 'S 30')
+            EEG.event(e).type = 'X';
+            trial_nr_total = trial_nr_total + 1;
+            trialinfo(trial_nr_total, :) = [e,...
+                                            subject_id,...
+                                            trial_nr_total,...
+                                            2];
+        end
 
-            % Set block number
-            if enum >= 210 & enum <= 220
-                block_nr = str2num(EEG.event(e).type(end));
-            end
+        % If sys 2
+        if strcmpi(EEG.event(e).type, 'S 40')
+            EEG.event(e).type = 'X';
+            trial_nr_total = trial_nr_total + 1;
+            trialinfo(trial_nr_total, :) = [e,...
+                                            subject_id,...
+                                            trial_nr_total,...
+                                            2];
+        end
 
-            % If trial and no practice block
-            if enum == 100 & block_nr > 0
 
-                % Save info
-                trial_nr_total = trial_nr_total + 1;
-                trialinfo(trial_nr_total, :) = [e,...
-                                                subject_id,...
-                                                str2num(subject_list{s}(end)),... 
-                                                trial_nr_total,...
-                                                block_nr,...
-                                                ];
+        % If self 1
+        if strcmpi(EEG.event(e).type, 'S 50')
+            EEG.event(e).type = 'X';
+            trial_nr_total = trial_nr_total + 1;
+            trialinfo(trial_nr_total, :) = [e,...
+                                            subject_id,...
+                                            trial_nr_total,...
+                                            3];
+        end
 
-            end
+        % If self 2
+        if strcmpi(EEG.event(e).type, 'S 60')
+            EEG.event(e).type = 'X';
+            trial_nr_total = trial_nr_total + 1;
+            trialinfo(trial_nr_total, :) = [e,...
+                                            subject_id,...
+                                            trial_nr_total,...
+                                            3];
         end
     end
 
     % Check trialcount
-    if trial_nr_total ~= 768
+    if trial_nr_total ~= 600
         fprintf('\n\n\nSOMETHING IS WEIIIRDDD with the trials!!!!!!\n\n\n');
         pause;
     end
-
-    % Convert trialinfo to table
-    trialinfo = array2table(trialinfo, 'VariableNames', {'event_number', 'id', 'session_condition', 'trial_nr_total', 'block_nr'});
-
-    % Combine info
-    trialinfo = [trialinfo, CNT(:, [7 : end])];
-
-    % Rename vars for clarity
-    trialinfo = renamevars(trialinfo, ["sequence_feedback", "sequence_feedback_scaled"], ["last_feedback", "last_feedback_scaled"]);
-
-    % Mark trials in event structure
-    for t = 1 : size(trialinfo, 1)
-        EEG.event(trialinfo(t, :).event_number).code = 'X';
-        EEG.event(trialinfo(t, :).event_number).type = 'X';
-    end
-
-    % Detect responses
-    response_data = [];
-    response_counter = 0;
-    for e = 1 : length(EEG.event)
-
-        % If trial
-        if strcmpi(EEG.event(e).type, 'X')
-
-            % Loop for response
-            resp = 0;
-            resp_lat = 0;
-            f = e;
-            while resp == 0 & resp_lat <= 1200
-
-                f = f + 1;
-
-                % get event latency
-                resp_lat = EEG.event(f).latency - EEG.event(e).latency;
-
-                % If response key pressed
-                if strcmpi(EEG.event(f).type, 'L  1') & resp_lat <= 1200
-                    resp = 1;
-                elseif strcmpi(EEG.event(f).type, 'R  1') & resp_lat <= 1200
-                    resp = 2;
-                end
-            end
-
-            % Save to matrix
-            response_counter = response_counter + 1;
-            response_data(response_counter, :) = [resp, resp_lat, 0];
-        end
-    end
-
-    % Check trialcount
-    if response_counter ~= 768
-        fprintf('\n\n\nSOMETHING IS WEIIIRDDD!!!!!!\n\n\n');
-        pause;
-    end
-
-    % Convert response data to table
-    response_data = array2table(response_data, 'VariableNames', {'response_key', 'rt', 'accuracy'});
-
-    % Combine info
-    trialinfo = [trialinfo, response_data];
-
-    % Code accuray
-    for t = 1 : size(trialinfo, 1)
-        if trialinfo(t, :).correct_response == 4 & trialinfo(t, :).response_key == 2
-            trialinfo(t, :).accuracy = 1; % correct
-        elseif trialinfo(t, :).correct_response == 6 & trialinfo(t, :).response_key == 1
-            trialinfo(t, :).accuracy = 1; % correct
-        elseif trialinfo(t, :).response_key == 0
-            trialinfo(t, :).accuracy = 2; % omission
-        else
-            trialinfo(t, :).accuracy = 0; % incorrect
-        end
-     end
 
     % Add to EEG
     EEG.trialinfo = trialinfo;
@@ -219,12 +145,12 @@ for s = 1 : length(subject_list)
     dataRank = sum(eig(cov(double(EEG_TF.data'))) > 1e-6);
 
     % Epoch EEG data
-    [EEG, idx_to_keep] = pop_epoch(EEG, {'X'}, [-1.3, 1.2], 'newname', ['vp_', num2str(trialinfo(1, 2).id), '_epoched'], 'epochinfo', 'yes');
+    [EEG, idx_to_keep] = pop_epoch(EEG, {'X'}, [-0.3, 2.8], 'newname', ['vp_', num2str(subject_id), '_epoched'], 'epochinfo', 'yes');
     EEG.trialinfo =  EEG.trialinfo(idx_to_keep, :);
-    EEG = pop_rmbase(EEG, [-1200, -1000]);
-    [EEG_TF, idx_to_keep] = pop_epoch(EEG_TF, {'X'}, [-2.1, 2], 'newname', ['vp_', num2str(trialinfo(1, 2).id), '_epoched'],  'epochinfo', 'yes');
+    EEG = pop_rmbase(EEG, [-200, 0]);
+    [EEG_TF, idx_to_keep] = pop_epoch(EEG_TF, {'X'}, [-0.8, 3.3], 'newname', ['vp_', num2str(subject_id), '_epoched'],  'epochinfo', 'yes');
     EEG_TF.trialinfo =  EEG_TF.trialinfo(idx_to_keep, :);
-    EEG_TF = pop_rmbase(EEG_TF, [-1200, -1000]);
+    EEG_TF = pop_rmbase(EEG_TF, [-200, 0]);
 
     % Autoreject trials in tf-set
     [EEG_TF, EEG_TF.rejected_epochs] = pop_autorej(EEG_TF, 'nogui', 'on');
@@ -245,8 +171,8 @@ for s = 1 : length(subject_list)
     EEG.nobrainer = EEG_TF.nobrainer;
 
     % Save IC set
-    pop_saveset(EEG, 'filename', ['vp_', num2str(trialinfo(1, 2).id), '_icset_erp.set'], 'filepath', PATH_ICSET, 'check', 'on');
-    pop_saveset(EEG_TF, 'filename', ['vp_', num2str(trialinfo(1, 2).id), '_icset_tf.set'], 'filepath', PATH_ICSET, 'check', 'on');
+    pop_saveset(EEG, 'filename', ['vp_', num2str(subject_id), '_icset_erp.set'], 'filepath', PATH_ICSET, 'check', 'on');
+    pop_saveset(EEG_TF, 'filename', ['vp_', num2str(subject_id), '_icset_tf.set'], 'filepath', PATH_ICSET, 'check', 'on');
 
     % Remove components
     EEG    = pop_subcomp(EEG, EEG.nobrainer, 0);
@@ -256,13 +182,9 @@ for s = 1 : length(subject_list)
     [EEG, EEG.rejected_epochs] = pop_autorej(EEG, 'nogui', 'on');
     EEG.trialinfo(EEG.rejected_epochs, :) = [];
 
-    % Write trialinfo as csv
-    writetable(EEG.trialinfo, [PATH_AUTOCLEANED, 'vp_', num2str(trialinfo(1, 2).id), '_erp_trialinfo.csv']);
-    writetable(EEG_TF.trialinfo, [PATH_AUTOCLEANED, 'vp_', num2str(trialinfo(1, 2).id), '_tf_trialinfo.csv']);
-
     % Save clean data
-    pop_saveset(EEG, 'filename', ['vp_', num2str(trialinfo(1, 2).id), '_cleaned_erp.set'], 'filepath', PATH_AUTOCLEANED, 'check', 'on');
-    pop_saveset(EEG_TF, 'filename', ['vp_', num2str(trialinfo(1, 2).id), '_cleaned_tf.set'], 'filepath', PATH_AUTOCLEANED, 'check', 'on');
+    pop_saveset(EEG, 'filename', ['vp_', num2str(subject_id), '_cleaned_erp.set'], 'filepath', PATH_AUTOCLEANED, 'check', 'on');
+    pop_saveset(EEG_TF, 'filename', ['vp_', num2str(subject_id), '_cleaned_tf.set'], 'filepath', PATH_AUTOCLEANED, 'check', 'on');
 
 end % End subject loop
 
