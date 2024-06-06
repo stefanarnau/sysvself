@@ -1,7 +1,11 @@
+clear all;
 
 % PATH VARS
 PATH_EEGLAB = '/home/plkn/eeglab2023.1/';
 PATH_AUTOCLEANED = '/mnt/data_fast/sysvself/2_autocleaned/';
+
+% A nice subject list
+subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06', 'VP07'};
 
 % Init eeglab
 addpath(PATH_EEGLAB);
@@ -67,6 +71,9 @@ ersps = [];
 
 % Loop subjects
 for s = 1 : length(subject_list)
+
+    % Get id
+    subject_id = str2num(subject_list{s}(3 : 4));
 
     % Load data
     EEG = pop_loadset('filename', ['vp_', num2str(subject_id), '_cleaned_tf.set'], 'filepath', PATH_AUTOCLEANED, 'loadmode', 'all');

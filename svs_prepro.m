@@ -7,8 +7,9 @@ PATH_LOGFILES = '/mnt/data_fast/sysvself/logfiles/';
 PATH_ICSET = '/mnt/data_fast/sysvself/1_icset/';
 PATH_AUTOCLEANED = '/mnt/data_fast/sysvself/2_autocleaned/';
 
-
-subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06'};
+% A nice subject list
+subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06', 'VP07'};
+subject_list = {'VP07'};
 
 % Init eeglab
 addpath(PATH_EEGLAB);
