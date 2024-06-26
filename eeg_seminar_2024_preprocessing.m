@@ -9,7 +9,8 @@ PATH_ICSET = '/mnt/data_fast/sysvself/1_icset/';
 PATH_AUTOCLEANED = '/mnt/data_fast/sysvself/2_autocleaned/';
 
 % A list of file names for eeg data
-subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06', 'VP07'};
+subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06', 'VP07', 'VP08'};
+subject_list = {'VP08'};
 
 % Initialize eeglab and add path for channel location file
 addpath(PATH_EEGLAB);
