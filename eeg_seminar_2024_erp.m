@@ -5,7 +5,7 @@ PATH_EEGLAB = '/home/plkn/eeglab2023.1/';
 PATH_AUTOCLEANED = '/mnt/data_fast/sysvself/2_autocleaned/';
 
 % A nice subject list
-subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06', 'VP07'};
+subject_list = {'Vp02', 'Vp03', 'Vp04', 'Vp05', 'Vp06', 'VP07', 'VP08', 'VP09', 'VP10', 'VP11', 'VP12', 'Vp13'};
 
 % Init eeglab
 addpath(PATH_EEGLAB);
