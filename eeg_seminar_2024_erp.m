@@ -1,7 +1,7 @@
 clear all;
 
 % PATH VARS
-PATH_EEGLAB = '/home/plkn/eeglab2023.1/';
+PATH_EEGLAB = '/home/plkn/eeglab2024.0/';
 PATH_AUTOCLEANED = '/mnt/data_fast/sysvself/2_autocleaned/';
 
 % A nice subject list
@@ -35,33 +35,74 @@ for s = 1 : length(subject_list)
 
 end
 
-% Calculate grand average
-erp_ga = squeeze(mean(erps, 1));
+% Prune
+keep_idx = EEG.times <= 2300;
+erps = erps(:, :, :, keep_idx);
+erp_times = EEG.times(keep_idx);
 
 % Select channels
-channels = [15, 33, 34,...
-            65, 19, 20,...
-            16,  5,  6,...
-            17, 37, 38,...
-            ];
+chan_idx = [15, 65, 19, 20, 16];
 
+% Average across electrodes
+frontal_erps = squeeze(mean(erps(:, :, chan_idx, :), 3));
+
+% Time indices for parametrization
+time_idx = erp_times >= 1300 & erp_times < 1800;
+
+% Average across participants
+ga_erps =  squeeze(mean(frontal_erps, 1));
+ga_topo = squeeze(mean(erps(:, :, :, time_idx), [1, 4]));
+
+% Plot lineplot
 figure()
-for ch = 1 : length(channels)
+plot(erp_times, ga_erps(1, :), 'k', 'LineWidth', 2.5)
+hold on
+plot(erp_times, ga_erps(2, :), 'r', 'LineWidth', 2.5)
+plot(erp_times, ga_erps(3, :), 'g', 'LineWidth', 2.5)
+legend({'baseline', 'system', 'self'})
+xlabel('ms')
+ylabel('mV')
+xline([1300, 1800])
+title('frontal ERP (Fz, FCz, FC1, FC2, Cz)')
 
+% Plot topos
+figure()
+subplot(1, 3, 1)
+topoplot(ga_topo(1, :), EEG.chanlocs)
+title('baseline')
+clim([-4, 4])
+subplot(1, 3, 2)
+topoplot(ga_topo(2, :), EEG.chanlocs)
+title('system')
+clim([-4, 4])
+subplot(1, 3, 3)
+topoplot(ga_topo(3, :), EEG.chanlocs)
+title('self')
+clim([-4, 4])
 
-    idx_channel = channels(ch);
-
-    pd1 =  squeeze(erp_ga(1, idx_channel, :));
-    pd2 =  squeeze(erp_ga(2, idx_channel, :));
-    pd3 =  squeeze(erp_ga(3, idx_channel, :));
-
-    subplot(4, 3, ch)
-    plot(EEG.times, pd1, 'Linewidth', 1.5)
-    hold on
-    plot(EEG.times, pd2, 'Linewidth', 1.5)
-    plot(EEG.times, pd3, 'Linewidth', 1.5)
-    legend({'bl', 'sys', 'self'})
-    title(EEG.chanlocs(channels(ch)).labels)
-    xline([0, 1800])
-
+% Some stats
+res = [];
+counter = 0;
+for s = 1 : length(subject_list)
+    id = subject_list{s};
+    id = str2num(id(3 : 4));
+    for cond = 1 : 3
+        counter = counter + 1;
+        amp = mean(squeeze(frontal_erps(s, cond, time_idx)))
+        res(counter, :) = [id, cond, amp];
+    end
 end
+
+% Save
+writematrix(res, 'erp_results.csv');
+
+
+
+
+
+
+
+
+
+
+
